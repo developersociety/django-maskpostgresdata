@@ -9,6 +9,7 @@ setup(
     version='0.1.3',
     description='Creates a pg_dumpish output which masks data without saving changes to the source database.',
     long_description=long_description,
+    long_description_content_type="text/markdown",
     url='https://github.com/developersociety/django-maskpostgresdata',
     author='Developer Society',
     author_email='hello@dev.ngo',
