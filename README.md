@@ -24,11 +24,11 @@ INSTALLED_APPS = [
 Usage
 -----
 
-To configure, add a dictionary called `MASKER_FIELDS` to your settings using the following format::
+To configure, add a dictionary called `MASKER_FIELDS` to your settings using the following format:
 
 ```
 MASKER_FIELDS = {
-    "{ APP_NAME }": {"{ MODEL_NAME }": {"{ FIELD_NAME }": { VALUE},}},
+    "{ APP_NAME }": {"{ MODEL_NAME }": {"{ FIELD_NAME }": { VALUE },}},
 }
 ```
 
