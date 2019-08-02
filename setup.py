@@ -7,7 +7,7 @@ def readme():
 setup(
     name='django-maskpostgresdata',
     packages=['maskpostgresdata'],
-    version='0.1.1',
+    version='0.1.2',
     description='Creates a pg_dumpish output which masks data without saving changes to the source database.',
     url='https://github.com/developersociety/django-maskpostgresdata',
     author='Developer Society',
