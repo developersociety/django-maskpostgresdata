@@ -1,8 +1,7 @@
 from setuptools import setup
 
-def readme():
-    with open('README.md') as f:
-        long_description = f.read()
+with open('README.md') as f:
+    long_description = f.read()
 
 setup(
     name='django-maskpostgresdata',
