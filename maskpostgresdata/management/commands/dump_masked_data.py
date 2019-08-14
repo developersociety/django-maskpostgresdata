@@ -1,6 +1,7 @@
 import subprocess
 import sys
 
+from django.apps import apps
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.management.base import BaseCommand
@@ -66,6 +67,13 @@ class Command(BaseCommand):
         fields_to_mask = settings.MASKER_FIELDS
 
         altered_tables = []
+
+        for app in apps.get_app_configs():
+            for model in app.get_models():
+                if hasattr(self, 'filter_{}'.format(model._default_manager.model._meta.db_table)):
+                    getattr(
+                        self, 'filter_{}'.format(model._default_manager.model._meta.db_table)
+                    )(model._default_manager.all())
 
         for app in fields_to_mask.keys():
             for model, fields in fields_to_mask[app].items():
