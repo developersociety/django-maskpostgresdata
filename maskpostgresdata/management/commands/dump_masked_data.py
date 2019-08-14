@@ -3,7 +3,6 @@ import sys
 
 from django.apps import apps
 from django.conf import settings
-from django.contrib.contenttypes.models import ContentType
 from django.core.management.base import BaseCommand
 from django.db import DEFAULT_DB_ALIAS, connections, transaction
 
@@ -77,21 +76,18 @@ class Command(BaseCommand):
 
         for app in fields_to_mask.keys():
             for model, fields in fields_to_mask[app].items():
-                model_class = ContentType.objects.get(
-                    app_label=app.lower(), model=model.lower()
-                ).model_class()
-
-                model_class.objects.update(**fields)
-                table_name = model_class.objects.model._meta.db_table
+                model_class = apps.get_model(app.lower(), model_name=model.lower())
+                model_class._default_manager.update(**fields)
+                table_name = model_class._default_manager.model._meta.db_table
 
                 altered_tables.append(table_name)
                 print("COPY public.{} FROM stdin;".format(table_name), file=self.stdout._out)                
                 cursor.copy_to(self.stdout._out, table_name)
                 print("\\.\n", file=self.stdout._out)
 
-        for content_type in ContentType.objects.all():
-            if content_type.model_class():
-                table_name = content_type.model_class().objects.model._meta.db_table
+        for app in apps.get_app_configs():
+            for model in app.get_models():
+                table_name = model._default_manager.model._meta.db_table
                 if table_name not in altered_tables:
                     print("COPY public.{} FROM stdin;".format(table_name), file=self.stdout._out)                
                     cursor.copy_to(self.stdout._out, table_name)
