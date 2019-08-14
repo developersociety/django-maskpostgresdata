@@ -61,7 +61,10 @@ class Command(BaseCommand):
         header_dump = args + ["--section=pre-data"]
         subprocess.run(header_dump, stdout=self.stdout._out)
 
-        fields_to_mask = settings.MASKER_FIELDS
+        try:
+            fields_to_mask = settings.MASKER_FIELDS
+        except AttributeError:
+            fields_to_mask = None
 
         altered_tables = []
 
@@ -71,16 +74,17 @@ class Command(BaseCommand):
                 if hasattr(self, 'update_{}'.format(table_name)):
                     getattr(self, 'update_{}'.format(table_name))(model._default_manager.all())
 
-        for app in fields_to_mask.keys():
-            for model, fields in fields_to_mask[app].items():
-                model_class = apps.get_model(app.lower(), model_name=model.lower())
-                model_class._default_manager.update(**fields)
-                table_name = model_class._default_manager.model._meta.db_table
+        if fields_to_mask:
+            for app in fields_to_mask.keys():
+                for model, fields in fields_to_mask[app].items():
+                    model_class = apps.get_model(app.lower(), model_name=model.lower())
+                    model_class._default_manager.update(**fields)
+                    table_name = model_class._default_manager.model._meta.db_table
 
-                altered_tables.append(table_name)
-                print("COPY public.{} FROM stdin;".format(table_name), file=self.stdout._out)                
-                cursor.copy_to(self.stdout._out, table_name)
-                print("\\.\n", file=self.stdout._out)
+                    altered_tables.append(table_name)
+                    print("COPY public.{} FROM stdin;".format(table_name), file=self.stdout._out)                
+                    cursor.copy_to(self.stdout._out, table_name)
+                    print("\\.\n", file=self.stdout._out)
 
         for app in apps.get_app_configs():
             for model in app.get_models():
