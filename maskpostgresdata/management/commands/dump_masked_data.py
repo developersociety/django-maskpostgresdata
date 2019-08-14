@@ -10,9 +10,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_SERIALIZABLE
 
 
 class Command(BaseCommand):
-    help = (
-        "Prints a (sort of) pg_dump of the db with sensitive data masked."
-    )
+    help = ("Prints a (sort of) pg_dump of the db with sensitive data masked.")
 
     requires_system_checks = False
 
@@ -66,9 +64,6 @@ class Command(BaseCommand):
         fields_to_mask = settings.MASKER_FIELDS
 
         altered_tables = []
-
-        for app in apps.get_app_configs():
-            for model in app.get_models():
 
         for app in fields_to_mask.keys():
             for model, fields in fields_to_mask[app].items():
