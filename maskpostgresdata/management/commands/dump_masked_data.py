@@ -78,17 +78,17 @@ class Command(BaseCommand):
                 table_name = model_class.objects.model._meta.db_table
 
                 altered_tables.append(table_name)
-                print("COPY public.{} FROM stdin;".format(table_name), file=self.stdout._out)                
+                print("COPY public.{} FROM stdin;".format(table_name), flush=True)                
                 cursor.copy_to(self.stdout._out, table_name)
-                print("\\.\n", file=self.stdout._out)
+                print("\\.\n", file=self.stdout._out, flush=True)
 
         for content_type in ContentType.objects.all():
             if content_type.model_class():
                 table_name = content_type.model_class().objects.model._meta.db_table
                 if table_name not in altered_tables:
-                    print("COPY public.{} FROM stdin;".format(table_name), file=self.stdout._out)                
+                    print("COPY public.{} FROM stdin;".format(table_name), flush=True)                
                     cursor.copy_to(self.stdout._out, table_name)
-                    print("\\.\n", file=self.stdout._out)
+                    print("\\.\n", file=self.stdout._out, flush=True)
 
         post_data_dump = args + ["--section=post-data"]
         subprocess.run(header_dump, stdout=self.stdout._out)
