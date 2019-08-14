@@ -11,8 +11,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_SERIALIZABLE
 
 class Command(BaseCommand):
     help = (
-        "Runs the command-line client for specified database, or the "
-        "default database if none is provided."
+        "Prints a (sort of) pg_dump of the db with sensitive data masked."
     )
 
     requires_system_checks = False
