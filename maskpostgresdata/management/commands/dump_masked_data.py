@@ -65,6 +65,12 @@ class Command(BaseCommand):
 
         altered_tables = []
 
+        for app in apps.get_app_configs():
+            for model in app.get_models():
+                table_name = model._default_manager.model._meta.db_table
+                if hasattr(self, 'update_{}'.format(table_name)):
+                    getattr(self, 'update_{}'.format(table_name))(model._default_manager.all())
+
         for app in fields_to_mask.keys():
             for model, fields in fields_to_mask[app].items():
                 model_class = apps.get_model(app.lower(), model_name=model.lower())
@@ -79,8 +85,6 @@ class Command(BaseCommand):
         for app in apps.get_app_configs():
             for model in app.get_models():
                 table_name = model._default_manager.model._meta.db_table
-                if hasattr(self, 'update_{}'.format(table_name)):
-                    getattr(self, 'update_{}'.format(table_name))(model._default_manager.all())
 
                 if table_name not in altered_tables:
                     print("COPY public.{} FROM stdin;".format(table_name), file=self.stdout._out)                
