@@ -96,6 +96,10 @@ class Command(BaseCommand):
                     cursor.copy_to(self.stdout._out, table_name)
                     print("\\.\n", file=self.stdout._out, flush=True)
 
+        print("COPY public.django_migrations FROM stdin;".format(table_name), flush=True)
+        cursor.copy_to(self.stdout._out, 'django_migrations')
+        print("\\.\n", file=self.stdout._out, flush=True)
+
         post_data_dump = args + ["--section=post-data"]
         subprocess.run(header_dump, stdout=self.stdout._out)
 
