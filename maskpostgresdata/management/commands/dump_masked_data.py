@@ -3,6 +3,7 @@ import sys
 
 from django.apps import apps
 from django.conf import settings
+from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand
 from django.db import DEFAULT_DB_ALIAS, connections, transaction
 
@@ -23,7 +24,7 @@ class Command(BaseCommand):
         )
 
     def update_auth_user(self, queryset):
-        return queryset.update(password="password")
+        return queryset.update(password=make_password("password"))
 
     def handle(self, **options):
         connection = connections[options["database"]]
