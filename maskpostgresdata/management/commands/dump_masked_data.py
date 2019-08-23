@@ -24,7 +24,7 @@ class Command(BaseCommand):
         )
 
     def update_auth_user(self, queryset):
-        return queryset.update(password=make_password("password"))
+        queryset.update(password=make_password("password"))
 
     def handle(self, **options):
         connection = connections[options["database"]]
