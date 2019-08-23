@@ -47,7 +47,7 @@ from maskpostgresdata import BasePostgresDataMaskingCommand
 class Command(BasePostgresDataMaskingCommand):
 
     def update_auth_user(self, queryset):
-        return queryset.update(password=make_password("a_different_password"))
+        queryset.update(password=make_password("a_different_password"))
 
 ```
 

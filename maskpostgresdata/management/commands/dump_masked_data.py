@@ -3,6 +3,7 @@ import sys
 
 from django.apps import apps
 from django.conf import settings
+from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand
 from django.db import DEFAULT_DB_ALIAS, connections, transaction
 
@@ -10,9 +11,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_SERIALIZABLE
 
 
 class Command(BaseCommand):
-    help = (
-        "Prints a (sort of) pg_dump of the db with sensitive data masked."
-    )
+    help = ("Prints a (sort of) pg_dump of the db with sensitive data masked.")
 
     requires_system_checks = False
 
@@ -24,8 +23,8 @@ class Command(BaseCommand):
             default=DEFAULT_DB_ALIAS,
         )
 
-    def filter_auth_user(self, queryset):
-        return queryset.update(password="blah")
+    def update_auth_user(self, queryset):
+        queryset.update(password=make_password("password"))
 
     def handle(self, **options):
         connection = connections[options["database"]]
@@ -63,24 +62,35 @@ class Command(BaseCommand):
         header_dump = args + ["--section=pre-data"]
         subprocess.run(header_dump, stdout=self.stdout._out)
 
-        fields_to_mask = settings.MASKER_FIELDS
+        try:
+            fields_to_mask = settings.MASKER_FIELDS
+        except AttributeError:
+            fields_to_mask = None
 
         altered_tables = []
-
-        for app in fields_to_mask.keys():
-            for model, fields in fields_to_mask[app].items():
-                model_class = apps.get_model(app.lower(), model_name=model.lower())
-                model_class._default_manager.update(**fields)
-                table_name = model_class._default_manager.model._meta.db_table
-
-                altered_tables.append(table_name)
-                print("COPY public.{} FROM stdin;".format(table_name), flush=True)                
-                cursor.copy_to(self.stdout._out, table_name)
-                print("\\.\n", file=self.stdout._out, flush=True)
 
         for app in apps.get_app_configs():
             for model in app.get_models():
                 table_name = model._default_manager.model._meta.db_table
+                if hasattr(self, 'update_{}'.format(table_name)):
+                    getattr(self, 'update_{}'.format(table_name))(model._default_manager.all())
+
+        if fields_to_mask:
+            for app in fields_to_mask.keys():
+                for model, fields in fields_to_mask[app].items():
+                    model_class = apps.get_model(app.lower(), model_name=model.lower())
+                    model_class._default_manager.update(**fields)
+                    table_name = model_class._default_manager.model._meta.db_table
+
+                    altered_tables.append(table_name)
+                    print("COPY public.{} FROM stdin;".format(table_name), flush=True)                
+                    cursor.copy_to(self.stdout._out, table_name)
+                    print("\\.\n", file=self.stdout._out, flush=True)
+
+        for app in apps.get_app_configs():
+            for model in app.get_models():
+                table_name = model._default_manager.model._meta.db_table
+
                 if table_name not in altered_tables:
                     print("COPY public.{} FROM stdin;".format(table_name), flush=True)                
                     cursor.copy_to(self.stdout._out, table_name)
