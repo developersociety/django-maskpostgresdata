@@ -83,7 +83,7 @@ class Command(BaseCommand):
                     table_name = model_class._default_manager.model._meta.db_table
 
                     altered_tables.append(table_name)
-                    print("COPY public.{} FROM stdin;".format(table_name), flush=True)                
+                    print("COPY public.{} FROM stdin;".format(table_name), flush=True)
                     cursor.copy_to(self.stdout._out, table_name)
                     print("\\.\n", file=self.stdout._out, flush=True)
 
@@ -92,9 +92,13 @@ class Command(BaseCommand):
                 table_name = model._default_manager.model._meta.db_table
 
                 if table_name not in altered_tables:
-                    print("COPY public.{} FROM stdin;".format(table_name), flush=True)                
+                    print("COPY public.{} FROM stdin;".format(table_name), flush=True)
                     cursor.copy_to(self.stdout._out, table_name)
                     print("\\.\n", file=self.stdout._out, flush=True)
+
+        print("COPY public.django_migrations FROM stdin;".format(table_name), flush=True)
+        cursor.copy_to(self.stdout._out, 'django_migrations')
+        print("\\.\n", file=self.stdout._out, flush=True)
 
         post_data_dump = args + ["--section=post-data"]
         subprocess.run(header_dump, stdout=self.stdout._out)
