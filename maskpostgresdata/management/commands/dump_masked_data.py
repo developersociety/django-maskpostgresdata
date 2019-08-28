@@ -101,6 +101,6 @@ class Command(BaseCommand):
         print("\\.\n", file=self.stdout._out, flush=True)
 
         post_data_dump = args + ["--section=post-data"]
-        subprocess.run(header_dump, stdout=self.stdout._out)
+        subprocess.run(post_data_dump, stdout=self.stdout._out)
 
         transaction.rollback()
