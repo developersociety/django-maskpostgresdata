@@ -1,11 +1,11 @@
-from setuptools import setup
+from setuptools import find_packages, setup
 
 with open('README.md') as f:
     long_description = f.read()
 
 setup(
     name='django-maskpostgresdata',
-    packages=['maskpostgresdata.management'],
+    packages=find_packages(),
     version='0.1.6',
     description='Creates a pg_dumpish output which masks data without saving changes to the source database.',
     long_description=long_description,
