@@ -45,6 +45,10 @@ class Command(BaseCommand):
             args += ["-p", str(port)]
         args += [dbname]
 
+        masker_args = getattr(settings, "MASKER_ARGS", ["--no-owner", "--no-privileges"])
+        if masker_args:
+            args += masker_args
+
         connection.ensure_connection()
         connection.set_autocommit(False)
 
