@@ -6,7 +6,7 @@ with open('README.md') as f:
 setup(
     name='django-maskpostgresdata',
     packages=find_packages(),
-    version='0.1.6',
+    version='0.1.7',
     description='Creates a pg_dumpish output which masks data without saving changes to the source database.',
     long_description=long_description,
     long_description_content_type="text/markdown",
