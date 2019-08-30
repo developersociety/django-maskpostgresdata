@@ -66,7 +66,7 @@ class Command(BaseCommand):
         header_dump = args + ["--section=pre-data"]
         subprocess.run(header_dump, stdout=self.stdout._out)
 
-        fields_to_mask = getattr(settings, "MASKER_FIELDS")
+        fields_to_mask = getattr(settings, "MASKER_FIELDS", None)
         altered_tables = []
 
         for app in apps.get_app_configs():
