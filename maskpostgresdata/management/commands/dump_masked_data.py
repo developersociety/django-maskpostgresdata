@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 
@@ -36,6 +37,7 @@ class Command(BaseCommand):
         port = conn_params.get("port", "")
         dbname = conn_params.get("database", "")
         user = conn_params.get("user", "")
+        passwd = conn_params.get("password", "")
 
         if user:
             args += ["-U", user]
@@ -44,6 +46,10 @@ class Command(BaseCommand):
         if port:
             args += ["-p", str(port)]
         args += [dbname]
+
+        subprocess_env = os.environ.copy()
+        if passwd:
+            subprocess_env["PGPASSWORD"] = str(passwd)
 
         masker_args = getattr(settings, "MASKER_ARGS", ["--no-owner", "--no-privileges"])
         if masker_args:
@@ -64,7 +70,7 @@ class Command(BaseCommand):
         args += ["--snapshot={}".format(snapshot_id)]
 
         header_dump = args + ["--section=pre-data"]
-        subprocess.run(header_dump, stdout=self.stdout._out)
+        subprocess.run(header_dump, stdout=self.stdout._out, env=subprocess_env)
 
         fields_to_mask = getattr(settings, "MASKER_FIELDS", None)
         altered_tables = []
@@ -101,6 +107,6 @@ class Command(BaseCommand):
         print("\\.\n", file=self.stdout._out, flush=True)
 
         post_data_dump = args + ["--section=post-data"]
-        subprocess.run(post_data_dump, stdout=self.stdout._out)
+        subprocess.run(post_data_dump, stdout=self.stdout._out, env=subprocess_env)
 
         transaction.rollback()
