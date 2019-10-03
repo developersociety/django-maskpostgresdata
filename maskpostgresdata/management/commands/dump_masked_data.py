@@ -1,6 +1,5 @@
 import os
 import subprocess
-import sys
 
 from django.apps import apps
 from django.conf import settings
@@ -29,23 +28,23 @@ class Command(BaseCommand):
 
     def reset_sequences(self, cursor):
         """
-        Get all the sequances from the database and the last values for it
+        Get all the sequences from the database and the last values for it
         """
-        # Get all sequances
-        cursor.execute("SELECT * FROM information_schema.sequences;")
+        # Get all sequences
+        cursor.execute("SELECT sequence_name FROM information_schema.sequences;")
         rows = cursor.fetchall()
         for row in rows:
-            sequance_name = row[2]
+            sequence_name = row[0]
 
-            # Get the last value for the sequance
+            # Get the last value for the sequence
             cursor.execute(
-                "SELECT last_value FROM {sequance_name}".format(sequance_name=sequance_name)
+                "SELECT last_value FROM {sequence_name}".format(sequence_name=sequence_name)
             )
             last_value = cursor.fetchone()[0]
 
-            print("SELECT pg_catalog.setval('public.{sequance_name}', {last_value});".format(
-                sequance_name=sequance_name, last_value=last_value
-            ))
+            print("SELECT pg_catalog.setval('public.{sequence_name}', {last_value});".format(
+                sequence_name=sequence_name, last_value=last_value
+            ), flush=True)
 
     def handle(self, **options):
         connection = connections[options["database"]]
