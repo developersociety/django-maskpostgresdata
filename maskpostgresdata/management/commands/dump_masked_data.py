@@ -27,6 +27,26 @@ class Command(BaseCommand):
     def update_auth_user(self, queryset):
         queryset.update(password=make_password("password"))
 
+    def reset_sequence(self, cursor):
+        """
+        Get all the sequances from the database and the last values for it
+        """
+        # Get all sequances
+        cursor.execute("SELECT * FROM information_schema.sequences;")
+        rows = cursor.fetchall()
+        for row in rows:
+            sequance_name = row[2]
+
+            # Get the last value for the sequance
+            cursor.execute(
+                "SELECT last_value FROM {sequance_name}".format(sequance_name=sequance_name)
+            )
+            last_value = cursor.fetchone()[0]
+
+            print("SELECT pg_catalog.setval('public.{sequance_name}', {last_value});".format(
+                sequance_name=sequance_name, last_value=last_value
+            ))
+
     def handle(self, **options):
         connection = connections[options["database"]]
 
@@ -105,6 +125,9 @@ class Command(BaseCommand):
         print("COPY public.django_migrations FROM stdin;".format(table_name), flush=True)
         cursor.copy_to(self.stdout._out, 'django_migrations')
         print("\\.\n", file=self.stdout._out, flush=True)
+
+        # Sets a new values for sequances.
+        self.reset_sequence(cursor)
 
         post_data_dump = args + ["--section=post-data"]
         subprocess.run(post_data_dump, stdout=self.stdout._out, env=subprocess_env)
