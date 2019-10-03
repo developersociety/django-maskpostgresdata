@@ -27,7 +27,7 @@ class Command(BaseCommand):
     def update_auth_user(self, queryset):
         queryset.update(password=make_password("password"))
 
-    def reset_sequence(self, cursor):
+    def reset_sequences(self, cursor):
         """
         Get all the sequances from the database and the last values for it
         """
@@ -127,7 +127,7 @@ class Command(BaseCommand):
         print("\\.\n", file=self.stdout._out, flush=True)
 
         # Sets a new values for sequances.
-        self.reset_sequence(cursor)
+        self.reset_sequences(cursor)
 
         post_data_dump = args + ["--section=post-data"]
         subprocess.run(post_data_dump, stdout=self.stdout._out, env=subprocess_env)
