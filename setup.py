@@ -9,7 +9,7 @@ setup(
     version='0.1.9',
     description=(
         'Creates a pg_dumpish output which masks data without saving changes to the source '
-        'database.',
+        'database.'
     ),
     long_description=long_description,
     long_description_content_type="text/markdown",
