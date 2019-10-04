@@ -125,7 +125,7 @@ class Command(BaseCommand):
         cursor.copy_to(self.stdout._out, 'django_migrations')
         print("\\.\n", file=self.stdout._out, flush=True)
 
-        # Sets a new values for sequances.
+        # Sets a new values for sequences.
         self.reset_sequences(cursor)
 
         post_data_dump = args + ["--section=post-data"]
