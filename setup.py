@@ -6,7 +6,7 @@ with open('README.md') as f:
 setup(
     name='django-maskpostgresdata',
     packages=find_packages(),
-    version='0.1.9',
+    version='0.1.10',
     description=(
         'Creates a pg_dumpish output which masks data without saving changes to the source '
         'database.'
@@ -18,5 +18,5 @@ setup(
     author_email='hello@dev.ngo',
     license='BSD',
     zip_safe=False,
-    install_requires=['django>=1.8', 'psycopg2']
+    install_requires=['django>=1.8', 'psycopg2-binary']
 )
