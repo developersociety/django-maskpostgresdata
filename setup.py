@@ -18,5 +18,5 @@ setup(
     author_email='hello@dev.ngo',
     license='BSD',
     zip_safe=False,
-    install_requires=['django>=1.8', 'psycopg2-binary']
+    install_requires=['django>=1.8']
 )
