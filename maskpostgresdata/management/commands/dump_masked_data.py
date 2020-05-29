@@ -121,6 +121,10 @@ class Command(BaseCommand):
                     print("\\.\n", file=self.stdout._out, flush=True)
 
         for app in apps.get_app_configs():
+            # GeoDjango tables are automatically created by postgis, and we can't use COPY on them
+            if app.name == "django.contrib.gis":
+                continue
+
             for model in app.get_models():
                 table_name = model._default_manager.model._meta.db_table
 
