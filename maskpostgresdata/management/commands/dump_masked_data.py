@@ -12,16 +12,13 @@ from psycopg2.extensions import ISOLATION_LEVEL_SERIALIZABLE
 
 
 class Command(BaseCommand):
-    help = ("Prints a (sort of) pg_dump of the db with sensitive data masked.")
+    help = "Prints a (sort of) pg_dump of the db with sensitive data masked."
 
     requires_system_checks = False
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--database",
-            action="store",
-            dest="database",
-            default=DEFAULT_DB_ALIAS,
+            "--database", action="store", dest="database", default=DEFAULT_DB_ALIAS,
         )
 
     def update_auth_user(self, queryset):
@@ -39,13 +36,18 @@ class Command(BaseCommand):
 
             # Get the last value for the sequence
             cursor.execute(
-                "SELECT last_value FROM {sequence_name}".format(sequence_name=sequence_name)
+                "SELECT last_value FROM {sequence_name}".format(
+                    sequence_name=sequence_name
+                )
             )
             last_value = cursor.fetchone()[0]
 
-            print("SELECT pg_catalog.setval('public.{sequence_name}', {last_value});".format(
-                sequence_name=sequence_name, last_value=last_value
-            ), flush=True)
+            print(
+                "SELECT pg_catalog.setval('public.{sequence_name}', {last_value});".format(
+                    sequence_name=sequence_name, last_value=last_value
+                ),
+                flush=True,
+            )
 
     def handle(self, **options):
         try:
@@ -78,7 +80,9 @@ class Command(BaseCommand):
         if passwd:
             subprocess_env["PGPASSWORD"] = str(passwd)
 
-        masker_args = getattr(settings, "MASKER_ARGS", ["--no-owner", "--no-privileges"])
+        masker_args = getattr(
+            settings, "MASKER_ARGS", ["--no-owner", "--no-privileges"]
+        )
         if masker_args:
             args += masker_args
 
@@ -86,7 +90,9 @@ class Command(BaseCommand):
         connection.set_autocommit(False)
 
         if connection.isolation_level != ISOLATION_LEVEL_SERIALIZABLE:
-            connection.connection.set_session(isolation_level=ISOLATION_LEVEL_SERIALIZABLE)
+            connection.connection.set_session(
+                isolation_level=ISOLATION_LEVEL_SERIALIZABLE
+            )
             connection.isolation_level = ISOLATION_LEVEL_SERIALIZABLE
             connection.connection.isolation_level = ISOLATION_LEVEL_SERIALIZABLE
 
@@ -105,8 +111,10 @@ class Command(BaseCommand):
         for app in apps.get_app_configs():
             for model in app.get_models():
                 table_name = model._default_manager.model._meta.db_table
-                if hasattr(self, 'update_{}'.format(table_name)):
-                    getattr(self, 'update_{}'.format(table_name))(model._default_manager.all())
+                if hasattr(self, "update_{}".format(table_name)):
+                    getattr(self, "update_{}".format(table_name))(
+                        model._default_manager.all()
+                    )
 
         if fields_to_mask:
             for app in fields_to_mask.keys():
@@ -120,6 +128,7 @@ class Command(BaseCommand):
                     cursor.copy_to(self.stdout._out, table_name)
                     print("\\.\n", file=self.stdout._out, flush=True)
 
+        copied_tables = []
         for app in apps.get_app_configs():
             # GeoDjango tables are automatically created by postgis, and we can't use COPY on them
             if app.name == "django.contrib.gis":
@@ -133,8 +142,28 @@ class Command(BaseCommand):
                     cursor.copy_to(self.stdout._out, table_name)
                     print("\\.\n", file=self.stdout._out, flush=True)
 
-        print("COPY public.django_migrations FROM stdin;".format(table_name), flush=True)
-        cursor.copy_to(self.stdout._out, 'django_migrations')
+                    copied_tables.append(table_name)
+
+                for field in model._meta.local_many_to_many:
+                    m2m_table_name = field.m2m_db_table()
+
+                    if (
+                        m2m_table_name not in altered_tables
+                        and m2m_table_name not in copied_tables # noqa
+                    ):
+                        print(
+                            "COPY public.{} FROM stdin;".format(m2m_table_name),
+                            flush=True,
+                        )
+                        cursor.copy_to(self.stdout._out, m2m_table_name)
+                        print("\\.\n", file=self.stdout._out, flush=True)
+
+                        copied_tables.append(m2m_table_name)
+
+        print(
+            "COPY public.django_migrations FROM stdin;".format(table_name), flush=True
+        )
+        cursor.copy_to(self.stdout._out, "django_migrations")
         print("\\.\n", file=self.stdout._out, flush=True)
 
         # Sets a new values for sequences.
