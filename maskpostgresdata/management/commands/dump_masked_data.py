@@ -52,9 +52,13 @@ class Command(BaseCommand):
     def handle(self, **options):
         try:
             self.process_data(**options)
-        except (KeyboardInterrupt, BrokenPipeError):
+        except KeyboardInterrupt:
             print("\n", file=self.stdout._out, flush=True)
             print("Keyboard interaction detected", file=self.stdout._out, flush=True)
+            sys.exit(0)
+        except BrokenPipeError:
+            # Usually the result of a connection drop during the command - there's no point in
+            # printing any response, as that's the cause of the problem!
             sys.exit(0)
 
     def process_data(self, **options):
