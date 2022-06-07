@@ -139,6 +139,10 @@ class Command(BaseCommand):
                 continue
 
             for model in app.get_models():
+                if model._meta.proxy:
+                    # Proxy models have another underlying model/table - so skip
+                    continue
+
                 table_name = model._default_manager.model._meta.db_table
 
                 if table_name not in altered_tables:
