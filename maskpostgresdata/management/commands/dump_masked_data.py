@@ -146,7 +146,7 @@ class Command(BaseCommand):
 
                 table_name = model._default_manager.model._meta.db_table
 
-                if table_name not in altered_tables:
+                if table_name not in altered_tables and table_name not in copied_tables:
                     print("COPY public.{} FROM stdin;".format(table_name), flush=True)
                     cursor.copy_to(self.stdout._out, table_name)
                     print("\\.\n", file=self.stdout._out, flush=True)
