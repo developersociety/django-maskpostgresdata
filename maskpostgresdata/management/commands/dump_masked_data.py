@@ -2,20 +2,19 @@ import os
 import subprocess
 import sys
 
-import django
 from django.apps import apps
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand
 from django.db import DEFAULT_DB_ALIAS, connections, transaction
 
-from psycopg2.extensions import ISOLATION_LEVEL_SERIALIZABLE
+from psycopg import IsolationLevel
 
 
 class Command(BaseCommand):
     help = "Prints a (sort of) pg_dump of the db with sensitive data masked."
 
-    requires_system_checks = [] if django.VERSION >= (3, 2) else False
+    requires_system_checks = []
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -43,19 +42,18 @@ class Command(BaseCommand):
             )
             last_value = cursor.fetchone()[0]
 
-            print(
+            self.stdout.write(
                 "SELECT pg_catalog.setval('public.{sequence_name}', {last_value});".format(
                     sequence_name=sequence_name, last_value=last_value
                 ),
-                flush=True,
             )
 
     def handle(self, **options):
         try:
             self.process_data(**options)
         except KeyboardInterrupt:
-            print("\n", file=self.stdout._out, flush=True)
-            print("Keyboard interaction detected", file=self.stdout._out, flush=True)
+            self.stdout.write("\n")
+            self.stdout.write("-- Keyboard interaction detected")
             sys.exit(0)
         except BrokenPipeError:
             # Usually the result of a connection drop during the command - there's no point in
@@ -69,7 +67,7 @@ class Command(BaseCommand):
         conn_params = connection.get_connection_params()
         host = conn_params.get("host", "")
         port = conn_params.get("port", "")
-        dbname = conn_params.get("database", "")
+        dbname = conn_params.get("dbname", "")
         user = conn_params.get("user", "")
         passwd = conn_params.get("password", "")
 
@@ -94,12 +92,9 @@ class Command(BaseCommand):
         connection.ensure_connection()
         connection.set_autocommit(False)
 
-        if connection.isolation_level != ISOLATION_LEVEL_SERIALIZABLE:
-            connection.connection.set_session(
-                isolation_level=ISOLATION_LEVEL_SERIALIZABLE
-            )
-            connection.isolation_level = ISOLATION_LEVEL_SERIALIZABLE
-            connection.connection.isolation_level = ISOLATION_LEVEL_SERIALIZABLE
+        if connection.isolation_level != IsolationLevel.SERIALIZABLE:
+            connection.isolation_level = IsolationLevel.SERIALIZABLE
+            connection.connection.isolation_level = IsolationLevel.SERIALIZABLE
 
         cursor = connection.cursor()
         cursor.execute("SELECT pg_export_snapshot();")
@@ -108,7 +103,7 @@ class Command(BaseCommand):
         args += ["--snapshot={}".format(snapshot_id)]
 
         header_dump = args + ["--section=pre-data"]
-        subprocess.run(header_dump, stdout=self.stdout._out, env=subprocess_env)
+        subprocess.run(header_dump, env=subprocess_env)
 
         fields_to_mask = getattr(settings, "MASKER_FIELDS", None)
         altered_tables = []
@@ -129,9 +124,12 @@ class Command(BaseCommand):
                     table_name = model_class._default_manager.model._meta.db_table
 
                     altered_tables.append(table_name)
-                    print("COPY public.{} FROM stdin;".format(table_name), flush=True)
-                    cursor.copy_to(self.stdout._out, table_name)
-                    print("\\.\n", file=self.stdout._out, flush=True)
+                    self.stdout.write("COPY public.{} FROM stdin;".format(table_name))
+                    self.stdout.flush()
+                    with cursor.copy("COPY public.{} TO STDOUT".format(table_name)) as copy:
+                        while data := copy.read():
+                            sys.stdout.buffer.write(data)
+                    self.stdout.write("\\.\n")
 
         copied_tables = []
         for app in apps.get_app_configs():
@@ -147,9 +145,12 @@ class Command(BaseCommand):
                 table_name = model._default_manager.model._meta.db_table
 
                 if table_name not in altered_tables and table_name not in copied_tables:
-                    print("COPY public.{} FROM stdin;".format(table_name), flush=True)
-                    cursor.copy_to(self.stdout._out, table_name)
-                    print("\\.\n", file=self.stdout._out, flush=True)
+                    self.stdout.write("COPY public.{} FROM stdin;".format(table_name))
+                    self.stdout.flush()
+                    with cursor.copy("COPY public.{} TO STDOUT".format(table_name)) as copy:
+                        while data := copy.read():
+                            sys.stdout.buffer.write(data)
+                    self.stdout.write("\\.\n")
 
                     copied_tables.append(table_name)
 
@@ -160,25 +161,27 @@ class Command(BaseCommand):
                         m2m_table_name not in altered_tables
                         and m2m_table_name not in copied_tables # noqa
                     ):
-                        print(
-                            "COPY public.{} FROM stdin;".format(m2m_table_name),
-                            flush=True,
-                        )
-                        cursor.copy_to(self.stdout._out, m2m_table_name)
-                        print("\\.\n", file=self.stdout._out, flush=True)
+                        self.stdout.write("COPY public.{} FROM stdin;".format(m2m_table_name))
+                        self.stdout.flush()
+                        with cursor.copy("COPY public.{} TO STDOUT".format(m2m_table_name)) as copy:
+                            while data := copy.read():
+                                sys.stdout.buffer.write(data)
+                        self.stdout.write("\\.\n")
 
                         copied_tables.append(m2m_table_name)
 
-        print(
-            "COPY public.django_migrations FROM stdin;".format(table_name), flush=True
-        )
-        cursor.copy_to(self.stdout._out, "django_migrations")
-        print("\\.\n", file=self.stdout._out, flush=True)
+        self.stdout.write("COPY public.django_migrations FROM stdin;".format(table_name))
+        self.stdout.flush()
+        with cursor.copy("COPY public.django_migrations TO STDOUT") as copy:
+            while data := copy.read():
+                sys.stdout.buffer.write(data)
+        self.stdout.write("\\.\n")
 
         # Sets a new values for sequences.
         self.reset_sequences(cursor)
 
         post_data_dump = args + ["--section=post-data"]
-        subprocess.run(post_data_dump, stdout=self.stdout._out, env=subprocess_env)
+        self.stdout.flush()
+        subprocess.run(post_data_dump, env=subprocess_env)
 
         transaction.rollback()
