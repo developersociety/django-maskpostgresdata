@@ -28,23 +28,17 @@ class Command(BaseCommand):
         """
         Get all the sequences from the database and the last values for it
         """
-        # Get all sequences
-        cursor.execute("SELECT sequence_name FROM information_schema.sequences;")
+        cursor.execute(
+            "SELECT schemaname, sequencename, start_value, last_value FROM pg_sequences;"
+        )
         rows = cursor.fetchall()
-        for row in rows:
-            sequence_name = row[0]
-
-            # Get the last value for the sequence
-            cursor.execute(
-                "SELECT last_value FROM {sequence_name}".format(
-                    sequence_name=sequence_name
-                )
-            )
-            last_value = cursor.fetchone()[0]
+        for schema_name, sequence_name, start_value, last_value in rows:
+            current_value = last_value or start_value
+            is_called = last_value is not None
 
             self.stdout.write(
-                "SELECT pg_catalog.setval('public.{sequence_name}', {last_value});".format(
-                    sequence_name=sequence_name, last_value=last_value
+                "SELECT pg_catalog.setval('{}.{}', {}, {});".format(
+                    schema_name, sequence_name, current_value, str(is_called).lower(),
                 ),
             )
 
