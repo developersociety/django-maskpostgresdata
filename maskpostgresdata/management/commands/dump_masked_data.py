@@ -99,29 +99,11 @@ class Command(BaseCommand):
         header_dump = [*args, "--section=pre-data"]
         subprocess.run(header_dump, check=True, env=subprocess_env)  # noqa:S603
 
-        fields_to_mask = getattr(settings, "MASKER_FIELDS", None)
-        altered_tables = []
-
         for app in apps.get_app_configs():
             for model in app.get_models():
                 table_name = model._default_manager.model._meta.db_table
                 if hasattr(self, f"update_{table_name}"):
                     getattr(self, f"update_{table_name}")(model._default_manager.all())
-
-        if fields_to_mask:
-            for app, app_masks in fields_to_mask.items():
-                for model, fields in app_masks.items():
-                    model_class = apps.get_model(app.lower(), model_name=model.lower())
-                    model_class._default_manager.update(**fields)
-                    table_name = model_class._default_manager.model._meta.db_table
-
-                    altered_tables.append(table_name)
-                    self.stdout.write(f"COPY public.{table_name} FROM stdin;")
-                    self.stdout.flush()
-                    with cursor.copy(f"COPY public.{table_name} TO STDOUT") as copy:
-                        while data := copy.read():
-                            sys.stdout.buffer.write(data)
-                    self.stdout.write("\\.\n")
 
         copied_tables = []
         for app in apps.get_app_configs():
@@ -136,7 +118,7 @@ class Command(BaseCommand):
 
                 table_name = model._default_manager.model._meta.db_table
 
-                if table_name not in altered_tables and table_name not in copied_tables:
+                if table_name not in copied_tables:
                     self.stdout.write(f"COPY public.{table_name} FROM stdin;")
                     self.stdout.flush()
                     with cursor.copy(f"COPY public.{table_name} TO STDOUT") as copy:
@@ -149,10 +131,7 @@ class Command(BaseCommand):
                 for field in model._meta.local_many_to_many:
                     m2m_table_name = field.m2m_db_table()
 
-                    if (
-                        m2m_table_name not in altered_tables
-                        and m2m_table_name not in copied_tables
-                    ):
+                    if m2m_table_name not in copied_tables:
                         self.stdout.write(f"COPY public.{m2m_table_name} FROM stdin;")
                         self.stdout.flush()
                         with cursor.copy(f"COPY public.{m2m_table_name} TO STDOUT") as copy:

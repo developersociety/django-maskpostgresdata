@@ -26,17 +26,7 @@ Usage
 
 By default, `django-maskpostgresdata` will replace the `password` column for each row in the Django `User` model with "password". Just run `manage.py dump_masked_data` and you'll get a pg_dump with the password field changed to "password" for all users.
 
-There are 2 ways to customise the behaviour of `django-maskpostgresdata`.
-
-To override individual fields of a model with a given value, add a dictionary called `MASKER_FIELDS` to your settings using the following format:
-
-```
-MASKER_FIELDS = {
-    "{ APP_NAME }": {"{ MODEL_NAME }": {"{ FIELD_NAME }": { VALUE },}},
-}
-```
-
-Alternatively, you can define exactly how the data is updated by subclassing `BasePostgresDataMaskingCommand` in a management command of your own. For example:
+If you need to customise the behaviour of the command, you can subclass `BasePostgresDataMaskingCommand` in a management command of your own. For example:
 
 ```
 from django.contrib.auth.hashers import make_password
