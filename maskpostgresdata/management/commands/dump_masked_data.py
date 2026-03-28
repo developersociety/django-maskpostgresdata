@@ -36,16 +36,12 @@ class Command(BaseCommand):
         )
         rows = cursor.fetchall()
         for schema_name, sequence_name, start_value, last_value in rows:
+            sequence = f"{schema_name}.{sequence_name}"
             current_value = last_value or start_value
-            is_called = last_value is not None
+            is_called = str(last_value is not None).lower()
 
             self.stdout.write(
-                "SELECT pg_catalog.setval('{}.{}', {}, {});".format(
-                    schema_name,
-                    sequence_name,
-                    current_value,
-                    str(is_called).lower(),
-                ),
+                f"SELECT pg_catalog.setval('{sequence}', {current_value}, {is_called});"
             )
 
     def handle(self, **options):
@@ -83,9 +79,7 @@ class Command(BaseCommand):
         if passwd:
             subprocess_env["PGPASSWORD"] = str(passwd)
 
-        masker_args = getattr(
-            settings, "MASKER_ARGS", ["--no-owner", "--no-privileges"]
-        )
+        masker_args = getattr(settings, "MASKER_ARGS", ["--no-owner", "--no-privileges"])
         if masker_args:
             args += masker_args
 
@@ -100,10 +94,10 @@ class Command(BaseCommand):
         cursor.execute("SELECT pg_export_snapshot();")
         snapshot_id = cursor.fetchone()[0]
 
-        args += ["--snapshot={}".format(snapshot_id)]
+        args += [f"--snapshot={snapshot_id}"]
 
-        header_dump = args + ["--section=pre-data"]
-        subprocess.run(header_dump, env=subprocess_env)
+        header_dump = [*args, "--section=pre-data"]
+        subprocess.run(header_dump, check=True, env=subprocess_env)  # noqa:S603
 
         fields_to_mask = getattr(settings, "MASKER_FIELDS", None)
         altered_tables = []
@@ -111,24 +105,20 @@ class Command(BaseCommand):
         for app in apps.get_app_configs():
             for model in app.get_models():
                 table_name = model._default_manager.model._meta.db_table
-                if hasattr(self, "update_{}".format(table_name)):
-                    getattr(self, "update_{}".format(table_name))(
-                        model._default_manager.all()
-                    )
+                if hasattr(self, f"update_{table_name}"):
+                    getattr(self, f"update_{table_name}")(model._default_manager.all())
 
         if fields_to_mask:
-            for app in fields_to_mask.keys():
-                for model, fields in fields_to_mask[app].items():
+            for app, app_masks in fields_to_mask.items():
+                for model, fields in app_masks.items():
                     model_class = apps.get_model(app.lower(), model_name=model.lower())
                     model_class._default_manager.update(**fields)
                     table_name = model_class._default_manager.model._meta.db_table
 
                     altered_tables.append(table_name)
-                    self.stdout.write("COPY public.{} FROM stdin;".format(table_name))
+                    self.stdout.write(f"COPY public.{table_name} FROM stdin;")
                     self.stdout.flush()
-                    with cursor.copy(
-                        "COPY public.{} TO STDOUT".format(table_name)
-                    ) as copy:
+                    with cursor.copy(f"COPY public.{table_name} TO STDOUT") as copy:
                         while data := copy.read():
                             sys.stdout.buffer.write(data)
                     self.stdout.write("\\.\n")
@@ -147,11 +137,9 @@ class Command(BaseCommand):
                 table_name = model._default_manager.model._meta.db_table
 
                 if table_name not in altered_tables and table_name not in copied_tables:
-                    self.stdout.write("COPY public.{} FROM stdin;".format(table_name))
+                    self.stdout.write(f"COPY public.{table_name} FROM stdin;")
                     self.stdout.flush()
-                    with cursor.copy(
-                        "COPY public.{} TO STDOUT".format(table_name)
-                    ) as copy:
+                    with cursor.copy(f"COPY public.{table_name} TO STDOUT") as copy:
                         while data := copy.read():
                             sys.stdout.buffer.write(data)
                     self.stdout.write("\\.\n")
@@ -165,13 +153,9 @@ class Command(BaseCommand):
                         m2m_table_name not in altered_tables
                         and m2m_table_name not in copied_tables
                     ):
-                        self.stdout.write(
-                            "COPY public.{} FROM stdin;".format(m2m_table_name)
-                        )
+                        self.stdout.write(f"COPY public.{m2m_table_name} FROM stdin;")
                         self.stdout.flush()
-                        with cursor.copy(
-                            "COPY public.{} TO STDOUT".format(m2m_table_name)
-                        ) as copy:
+                        with cursor.copy(f"COPY public.{m2m_table_name} TO STDOUT") as copy:
                             while data := copy.read():
                                 sys.stdout.buffer.write(data)
                         self.stdout.write("\\.\n")
@@ -188,8 +172,8 @@ class Command(BaseCommand):
         # Sets a new values for sequences.
         self.reset_sequences(cursor)
 
-        post_data_dump = args + ["--section=post-data"]
+        post_data_dump = [*args, "--section=post-data"]
         self.stdout.flush()
-        subprocess.run(post_data_dump, env=subprocess_env)
+        subprocess.run(post_data_dump, check=True, env=subprocess_env)  # noqa:S603
 
         transaction.rollback()
