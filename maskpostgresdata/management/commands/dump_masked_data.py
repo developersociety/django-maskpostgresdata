@@ -18,7 +18,10 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--database", action="store", dest="database", default=DEFAULT_DB_ALIAS,
+            "--database",
+            action="store",
+            dest="database",
+            default=DEFAULT_DB_ALIAS,
         )
 
     def update_auth_user(self, queryset):
@@ -38,7 +41,10 @@ class Command(BaseCommand):
 
             self.stdout.write(
                 "SELECT pg_catalog.setval('{}.{}', {}, {});".format(
-                    schema_name, sequence_name, current_value, str(is_called).lower(),
+                    schema_name,
+                    sequence_name,
+                    current_value,
+                    str(is_called).lower(),
                 ),
             )
 
@@ -120,7 +126,9 @@ class Command(BaseCommand):
                     altered_tables.append(table_name)
                     self.stdout.write("COPY public.{} FROM stdin;".format(table_name))
                     self.stdout.flush()
-                    with cursor.copy("COPY public.{} TO STDOUT".format(table_name)) as copy:
+                    with cursor.copy(
+                        "COPY public.{} TO STDOUT".format(table_name)
+                    ) as copy:
                         while data := copy.read():
                             sys.stdout.buffer.write(data)
                     self.stdout.write("\\.\n")
@@ -141,7 +149,9 @@ class Command(BaseCommand):
                 if table_name not in altered_tables and table_name not in copied_tables:
                     self.stdout.write("COPY public.{} FROM stdin;".format(table_name))
                     self.stdout.flush()
-                    with cursor.copy("COPY public.{} TO STDOUT".format(table_name)) as copy:
+                    with cursor.copy(
+                        "COPY public.{} TO STDOUT".format(table_name)
+                    ) as copy:
                         while data := copy.read():
                             sys.stdout.buffer.write(data)
                     self.stdout.write("\\.\n")
@@ -153,18 +163,22 @@ class Command(BaseCommand):
 
                     if (
                         m2m_table_name not in altered_tables
-                        and m2m_table_name not in copied_tables # noqa
+                        and m2m_table_name not in copied_tables
                     ):
-                        self.stdout.write("COPY public.{} FROM stdin;".format(m2m_table_name))
+                        self.stdout.write(
+                            "COPY public.{} FROM stdin;".format(m2m_table_name)
+                        )
                         self.stdout.flush()
-                        with cursor.copy("COPY public.{} TO STDOUT".format(m2m_table_name)) as copy:
+                        with cursor.copy(
+                            "COPY public.{} TO STDOUT".format(m2m_table_name)
+                        ) as copy:
                             while data := copy.read():
                                 sys.stdout.buffer.write(data)
                         self.stdout.write("\\.\n")
 
                         copied_tables.append(m2m_table_name)
 
-        self.stdout.write("COPY public.django_migrations FROM stdin;".format(table_name))
+        self.stdout.write("COPY public.django_migrations FROM stdin;")
         self.stdout.flush()
         with cursor.copy("COPY public.django_migrations TO STDOUT") as copy:
             while data := copy.read():
