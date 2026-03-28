@@ -1,11 +1,9 @@
-Django Mask Postgres Data
-=========================
+# Django Mask Postgres Data
 
 Adds a management command to your Django project which allows you to create a (sort of) pg_dump
 of your data with sensitive data masked.
 
-Installation
-------------
+## Installation
 
 Install with pip:
 
@@ -21,8 +19,7 @@ INSTALLED_APPS = [
 ]
 ```
 
-Usage
------
+## Usage
 
 By default, `django-maskpostgresdata` will replace the `password` column for each row in the Django `User` model with "password". Just run `manage.py dump_masked_data` and you'll get a pg_dump with the password field changed to "password" for all users.
 
