@@ -1,0 +1,40 @@
+[project]
+name = 'django-maskpostgresdata'
+version = '0.2.1'
+description = 'Creates a pg_dumpish output which masks data without saving changes to the source database.'
+readme = 'README.md'
+maintainers = [{ name = 'The Developer Society', email = 'studio@dev.ngo' }]
+requires-python = '>= 3.10'
+dependencies = [
+  'Django>=4.2',
+  'psycopg>=3.1.8',
+]
+license = 'BSD-3-Clause'
+classifiers = [
+  'Environment :: Web Environment',
+  'Framework :: Django',
+  'Framework :: Django :: 4.2',
+  'Framework :: Django :: 5.2',
+  'Intended Audience :: Developers',
+  'Operating System :: OS Independent',
+  'Programming Language :: Python',
+  'Programming Language :: Python :: 3',
+  'Programming Language :: Python :: 3.10',
+  'Programming Language :: Python :: 3.11',
+  'Programming Language :: Python :: 3.12',
+  'Programming Language :: Python :: 3.13',
+  'Programming Language :: Python :: 3.14',
+]
+
+[project.urls]
+Homepage = 'https://github.com/developersociety/django-maskpostgresdata'
+
+[build-system]
+requires = ['setuptools >= 77.0.3']
+build-backend = 'setuptools.build_meta'
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+include = ['maskpostgresdata*']

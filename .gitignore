@@ -1,3 +1,6 @@
 *.pyc
-*.egg-info
+MANIFEST
 dist
+build
+*.egg-info
+.*_cache
