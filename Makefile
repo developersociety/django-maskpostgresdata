@@ -41,10 +41,10 @@ test: ## Run unit and integration tests.
 test: django-test
 
 test-report: ## Run and report on unit and integration tests.
-test-report: ;
+test-report: coverage-clean test coverage-report
 
 test-lowest: ## Run tox with lowest (oldest) package dependencies.
-test-lowest: ;
+test-lowest: tox-test-lowest
 
 package: ## Builds source and wheel packages
 package: clean build-package
@@ -91,6 +91,21 @@ pip-install-local: venv-check
 	pip install -r requirements/local.txt
 
 
+# Coverage
+coverage-report: coverage-combine coverage-html
+	coverage report --show-missing
+
+coverage-combine:
+	coverage combine
+
+coverage-html:
+	coverage html
+
+coverage-clean:
+	rm -rf htmlcov
+	rm -f .coverage
+
+
 # ruff
 ruff-lint:
 	ruff check
@@ -104,6 +119,14 @@ ruff-format:
 # pipdeptree
 pipdeptree-check:
 	pipdeptree --warn fail >/dev/null
+
+
+# Project testing
+django-test:
+	PYTHONWARNINGS=all coverage run $$(which django-admin) test --pythonpath $$(pwd) --settings tests.settings tests
+
+tox-test-lowest:
+	tox --recreate --override testenv.uv_resolution=lowest
 
 
 # Help
